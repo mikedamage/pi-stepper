@@ -30,7 +30,7 @@ const NanoTimer = require('nanotimer');
  * @type {Object.<string,Mode>}
  * @default
  */
-exports.MODES = {
+const MODES = {
   SINGLE: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
   DUAL: [[1, 0, 0, 1], [0, 1, 0, 1], [0, 1, 1, 0], [1, 0, 1, 0]],
 };
@@ -45,20 +45,20 @@ exports.MODES = {
  * @type {Direction}
  * @default
  */
-exports.FORWARD = 1;
+const FORWARD = 1;
 
 /**
  * @constant
  * @type {Direction}
  * @default
  */
-exports.BACKWARD = -1;
+const BACKWARD = -1;
 
 /**
  * Stepper motor control class
  * @extends EventEmitter
  */
-exports.Stepper = class Stepper extends EventEmitter {
+class Stepper extends EventEmitter {
   /**
    * Create a stepper motor controller instance
    * @param {Object} config - An object of configuration parameters
@@ -407,4 +407,11 @@ exports.Stepper = class Stepper extends EventEmitter {
       this.gpios.forEach((gpio) => gpio.unexport());
     });
   }
+}
+
+module.exports = {
+  MODES,
+  FORWARD,
+  BACKWARD,
+  Stepper,
 };
