@@ -4,7 +4,6 @@
   "description": "Stepper motor module for Raspberry Pi",
   "author": "Mike Green <mike.is.green@gmail.com>",
   "dependencies": {
-    "lodash": "^4.17.11",
     "nanotimer": "^0.3.14",
     "onoff": "^4.1.1"
   },

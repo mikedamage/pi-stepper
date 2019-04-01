@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const { Gpio } = require('onoff');
 const EventEmitter = require('events');
 const NanoTimer = require('nanotimer');
@@ -68,9 +67,8 @@ exports.Stepper = class Stepper extends EventEmitter {
    * @param {Mode} [config.mode=MODES.DUAL] - GPIO pin activation sequence
    * @param {number} [config.speed=1] - Motor rotation speed in RPM
    * @example <caption>Initialize a stepper controller on pins 17, 16, 13, and 12, for a motor with 200 steps per revolution</caption>
-   * import { Stepper } from 'wpi-stepper';
+   * const { Stepper } = require('pi-stepper');
    * const motor = new Stepper({ pins: [ 17, 16, 13, 12 ], steps: 200 });
-   * @returns {Object} an instance of Stepper
    */
   constructor({ pins, steps = 200, mode = MODES.DUAL, speed = 1 }) {
     super();
@@ -85,11 +83,10 @@ exports.Stepper = class Stepper extends EventEmitter {
     this._powered = false;
 
     this._validateOptions();
-    wpi.setup('gpio');
 
-    for (let pin of this.pins) {
-      wpi.pinMode(pin, OUTPUT);
-    }
+    this.gpios = this.pins.map((pin) => new Gpio(pin, 'out'));
+
+    this._cleanupOnExit();
   }
 
   /**
@@ -361,9 +358,7 @@ exports.Stepper = class Stepper extends EventEmitter {
   _powerDown() {
     let pins = [...this.pins];
     this._powered = false;
-
-    _.fill(pins, 0);
-    this._setPinStates(...pins);
+    this._setPinStates(...pins.fill(0));
     this.emit('power', false);
   }
 
@@ -373,7 +368,7 @@ exports.Stepper = class Stepper extends EventEmitter {
     }
 
     for (let [idx, val] of states.entries()) {
-      wpi.digitalWrite(this.pins[idx], val);
+      this.gpios[idx].writeSync(val);
 
       if (!this._powered && val === 1) {
         this._powered = true;
@@ -400,10 +395,16 @@ exports.Stepper = class Stepper extends EventEmitter {
 
   _validateOptions() {
     const { mode, pins } = this;
-    const invalidStep = _.findIndex(mode, (step) => step.length !== pins.length);
+    const invalidStep = mode.findIndex((step) => step.length !== pins.length);
 
     if (invalidStep !== -1) {
       throw new Error(`Mode step at index ${invalidStep} has the wrong number of pins`);
     }
+  }
+
+  _cleanupOnExit() {
+    process.on('SIGINT', () => {
+      this.gpios.forEach((gpio) => gpio.unexport());
+    });
   }
 };
