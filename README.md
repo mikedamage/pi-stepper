@@ -1,45 +1,26 @@
-# wpi-stepper
-## A WiringPi Stepper Motor Control Module
+# pi-stepper
+## A Stepper Motor Control Module
 
 _by Mike Green_
 
 ## Introduction
 
-`wpi-stepper` is a flexible control class for stepper motors, written using the excellent [WiringPi-Node](https://www.npmjs.com/package/wiring-pi) library. If you find yourself in need of such a module, give it a try.
+`pi-stepper` is a flexible control class for stepper motors, forked and updated from my earlier module [wpi-stepper](https://github.com/mikedamage/wpi-stepper).
 
-I wrote `wpi-stepper` for a few reasons:
+In place of WiringPi, which hasn't seen an update to its Node bindings in a couple of years, I'm using [onoff](https://www.npmjs.com/package/onoff). I also removed Babel and upped the minimum Node version required to use this module to 10.
 
-+ I'm a web developer by trade. I'm most comfortable programming in JavaScript.
-+ My wife and I keep chickens (20 laying hens and a rotating cast of broilers, if you're curious).
-+ We built an automatic sliding door for our chicken coop that uses a stepper motor.
-+ All existing stepper control modules I could find in JS either don't work, can't be installed in current versions of Node, or require you to wire your motor to the driver in a way that makes no rational sense.
-
-`wpi-stepper` allows you to wire your motor and controller however you prefer, and you can also program your own pin activation sequences by simply feeding some arrays of 1's and 0's to the `Stepper` class. I can see this being useful not only for driving stepper motors, but also for controlling anything that requires a repeating sequence of activation and deactivation.
-
-_Note: This library uses WiringPi to toggle GPIO pins, which means that it must be run as root in order to work. If you're not running as root, your script will bail when WiringPi tries and fails to initialize._
+`pi-stepper` allows you to wire your motor and controller however you prefer, and you can also program your own pin activation sequences by simply feeding some arrays of 1's and 0's to the `Stepper` class. This could be useful not only for driving stepper motors, but also for controlling anything that requires a repeating sequence of activation and deactivation.
 
 ## Installation
 
 ```sh
-npm install --save wpi-stepper
+npm install --save pi-stepper
 ```
 
 ## Usage
 
-### ES5 Module
-
-Pre-compiled to ES5 with Babel and the `es2015-node` preset:
-
 ```js
-var Stepper = require('wpi-stepper').Stepper;
-```
-
-### ES6 Module
-
-The raw ES6 source, if you're transpiling it yourself:
-
-```js
-import { Stepper } from 'wpi-stepper/es6/lib/stepper';
+const { Stepper } = require('pi-stepper');
 ```
 
 ### Example
@@ -79,16 +60,16 @@ motor.move(-800);
 
 ### Custom Activation Modes
 
-`wpi-stepper` comes configured for a 4-wire stepper motor out of the box, and thus far that's all I've tested it with. However, you can easily use the `Stepper` class to drive other types of motors with different numbers of wires by passing it a custom `mode` option when you initialize an instance.
+`pi-stepper` comes configured for a 4-wire stepper motor out of the box, and thus far that's all I've tested it with. However, you can easily use the `Stepper` class to drive other types of motors with different numbers of wires by passing it a custom `mode` option when you initialize an instance.
 
-Activation modes are arrays of arrays, whose inner members are either `1` or `0` and correspond to each pin, in the order you first specified them. `wpi-stepper` exports two available activation modes out of the box, and they look like this:
+Activation modes are arrays of arrays, whose inner members are either `1` or `0` and correspond to each pin, in the order you first specified them. `pi-stepper` exports two available activation modes out of the box, and they look like this:
 
 #### `DUAL` _(this is the default mode)_
 
 Use this activation mode if you're driving a bipolar, 4-wire stepper motor:
 
 ```js
-import { MODES, Stepper } from 'wpi-stepper';
+const { MODES, Stepper } = require('pi-stepper');
 
 const pins = [ 17, 16, 13, 12 ];
 const mode = MODES.DUAL;
@@ -107,7 +88,7 @@ const motor = new Stepper({ pins, mode });
 #### `SINGLE` _(for unipolar motors)_
 
 ```js
-import { MODES, Stepper } from 'wpi-stepper';
+const { MODES, Stepper } = require('pi-stepper');
 
 const pins = [ 17, 16, 13, 12 ];
 const mode = MODES.SINGLE;
@@ -135,4 +116,4 @@ See the [API documentation](doc/api.md).
 
 ## License
 
-`wpi-stepper` is released under the terms of the [MIT License](./LICENSE).
+`pi-stepper` is released under the terms of the [MIT License](./LICENSE).
