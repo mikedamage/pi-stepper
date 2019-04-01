@@ -1,7 +1,7 @@
-import _               from 'lodash';
-import wpi, { OUTPUT } from 'wiringpi-node';
-import EventEmitter    from 'events';
-import NanoTimer       from 'nanotimer';
+const _ = require('lodash');
+const { Gpio } = require('onoff');
+const EventEmitter = require('events');
+const NanoTimer = require('nanotimer');
 
 /**
  * Node's EventEmitter module
@@ -31,19 +31,9 @@ import NanoTimer       from 'nanotimer';
  * @type {Object.<string,Mode>}
  * @default
  */
-export const MODES = {
-  SINGLE: [
-    [ 1, 0, 0, 0 ],
-    [ 0, 1, 0, 0 ],
-    [ 0, 0, 1, 0 ],
-    [ 0, 0, 0, 1 ]
-  ],
-  DUAL: [
-    [ 1, 0, 0, 1 ],
-    [ 0, 1, 0, 1 ],
-    [ 0, 1, 1, 0 ],
-    [ 1, 0, 1, 0 ]
-  ]
+exports.MODES = {
+  SINGLE: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+  DUAL: [[1, 0, 0, 1], [0, 1, 0, 1], [0, 1, 1, 0], [1, 0, 1, 0]],
 };
 
 /**
@@ -56,20 +46,20 @@ export const MODES = {
  * @type {Direction}
  * @default
  */
-export const FORWARD = 1;
+exports.FORWARD = 1;
 
 /**
  * @constant
  * @type {Direction}
  * @default
  */
-export const BACKWARD = -1;
+exports.BACKWARD = -1;
 
 /**
  * Stepper motor control class
  * @extends EventEmitter
  */
-export class Stepper extends EventEmitter {
+exports.Stepper = class Stepper extends EventEmitter {
   /**
    * Create a stepper motor controller instance
    * @param {Object} config - An object of configuration parameters
@@ -84,15 +74,15 @@ export class Stepper extends EventEmitter {
    */
   constructor({ pins, steps = 200, mode = MODES.DUAL, speed = 1 }) {
     super();
-    this.mode       = mode;
-    this.pins       = pins;
-    this.steps      = steps;
-    this.stepNum    = 0;
-    this.moving     = false;
-    this.direction  = null;
-    this.speed      = speed;
+    this.mode = mode;
+    this.pins = pins;
+    this.steps = steps;
+    this.stepNum = 0;
+    this.moving = false;
+    this.direction = null;
+    this.speed = speed;
     this._moveTimer = new NanoTimer();
-    this._powered   = false;
+    this._powered = false;
 
     this._validateOptions();
     wpi.setup('gpio');
@@ -109,7 +99,7 @@ export class Stepper extends EventEmitter {
    * @type {number}
    */
   get maxRPM() {
-    return 60 * 1e6 / this.steps;
+    return (60 * 1e6) / this.steps;
   }
 
   /**
@@ -232,8 +222,8 @@ export class Stepper extends EventEmitter {
       this.hold();
     }
 
-    this.moving    = true;
-    let remaining  = Math.abs(stepsToMove);
+    this.moving = true;
+    let remaining = Math.abs(stepsToMove);
     this.direction = stepsToMove > 0 ? FORWARD : BACKWARD;
 
     /**
@@ -245,20 +235,24 @@ export class Stepper extends EventEmitter {
     this.emit('start', this.direction, stepsToMove);
 
     return new Promise((resolve) => {
-      this._moveTimer.setInterval(() => {
-        if (remaining === 0) {
-          /**
-           * Fires when a motion is completed and there are no more steps to move, right before the motor holds position
-           * @event Stepper#complete
-           */
-          this.emit('complete');
-          this.hold();
-          return resolve(this.stepNum);
-        }
+      this._moveTimer.setInterval(
+        () => {
+          if (remaining === 0) {
+            /**
+             * Fires when a motion is completed and there are no more steps to move, right before the motor holds position
+             * @event Stepper#complete
+             */
+            this.emit('complete');
+            this.hold();
+            return resolve(this.stepNum);
+          }
 
-        this.step(this.direction);
-        remaining--;
-      }, '', `${this._stepDelay}u`);
+          this.step(this.direction);
+          remaining--;
+        },
+        '',
+        `${this._stepDelay}u`
+      );
     });
   }
 
@@ -305,7 +299,7 @@ export class Stepper extends EventEmitter {
       return;
     }
 
-    const phase     = this._countStep(direction);
+    const phase = this._countStep(direction);
     const pinStates = this.mode[phase];
 
     this._setPinStates(...pinStates);
@@ -365,7 +359,7 @@ export class Stepper extends EventEmitter {
   }
 
   _powerDown() {
-    let pins      = [ ...this.pins ];
+    let pins = [...this.pins];
     this._powered = false;
 
     _.fill(pins, 0);
@@ -406,12 +400,10 @@ export class Stepper extends EventEmitter {
 
   _validateOptions() {
     const { mode, pins } = this;
-    const invalidStep    = _.findIndex(mode, (step) => step.length !== pins.length);
+    const invalidStep = _.findIndex(mode, (step) => step.length !== pins.length);
 
     if (invalidStep !== -1) {
       throw new Error(`Mode step at index ${invalidStep} has the wrong number of pins`);
     }
   }
-}
-
-export default Stepper;
+};
