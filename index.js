@@ -1,11 +1,18 @@
 const { Gpio } = require('onoff');
 const EventEmitter = require('events');
 const NanoTimer = require('nanotimer');
+const { HIGH, LOW } = Gpio;
 
 /**
  * Node's EventEmitter module
  * @external EventEmitter
  * @see {@link https://nodejs.org/api/events.html}
+ */
+
+/**
+ * GPIO interface instance from `onoff`
+ * @external Gpio
+ * @see {@link https://www.npmjs.com/package/onoff#gpiogpio-direction--edge--options}
  */
 
 /**
@@ -62,15 +69,16 @@ class Stepper extends EventEmitter {
   /**
    * Create a stepper motor controller instance
    * @param {Object} config - An object of configuration parameters
-   * @param {number[]} config.pins - An array of Raspberry Pi GPIO pin numbers _(NOT WiringPi pin numbers)_
+   * @param {number[]} config.pins - An array of Raspberry Pi GPIO pin numbers
    * @param {number} [config.steps=200] - The number of steps per motor revolution
    * @param {Mode} [config.mode=MODES.DUAL] - GPIO pin activation sequence
    * @param {number} [config.speed=1] - Motor rotation speed in RPM
+   * @param {boolean} [config.cleanupOnExit=true] - Unregister GPIOs when process receives a SIGINT
    * @example <caption>Initialize a stepper controller on pins 17, 16, 13, and 12, for a motor with 200 steps per revolution</caption>
    * const { Stepper } = require('pi-stepper');
    * const motor = new Stepper({ pins: [ 17, 16, 13, 12 ], steps: 200 });
    */
-  constructor({ pins, steps = 200, mode = MODES.DUAL, speed = 1 }) {
+  constructor({ pins, steps = 200, mode = MODES.DUAL, speed = 1, cleanupOnExit = true }) {
     super();
     this.mode = mode;
     this.pins = pins;
@@ -84,9 +92,13 @@ class Stepper extends EventEmitter {
 
     this._validateOptions();
 
-    this.gpios = this.pins.map((pin) => new Gpio(pin, 'out'));
+    this.registerGpios();
 
-    this._cleanupOnExit();
+    if (cleanupOnExit) {
+      process.on('SIGINT', () => {
+        this.releaseGpios();
+      });
+    }
   }
 
   /**
@@ -326,6 +338,25 @@ class Stepper extends EventEmitter {
   }
 
   /**
+   * Register GPIO pin instances
+   * @returns {Gpio[]}
+   */
+  registerGpios() {
+    this.gpios = this.pins.map((pin) => new Gpio(pin, 'out'));
+    return this.gpios;
+  }
+
+  /**
+   * Release GPIO pin instances
+   * @returns {undefined}
+   */
+  releaseGpios() {
+    for (const gpio of this.gpios) {
+      gpio.unexport();
+    }
+  }
+
+  /**
    * Attach a `bunyan` logger instance to report on all possible events at varying detail levels.
    * @param {Logger} logger - a Bunyan logger instance
    * @returns {undefined}
@@ -358,7 +389,7 @@ class Stepper extends EventEmitter {
   _powerDown() {
     let pins = [...this.pins];
     this._powered = false;
-    this._setPinStates(...pins.fill(0));
+    this._setPinStates(...pins.fill(LOW));
     this.emit('power', false);
   }
 
@@ -370,7 +401,7 @@ class Stepper extends EventEmitter {
     for (let [idx, val] of states.entries()) {
       this.gpios[idx].writeSync(val);
 
-      if (!this._powered && val === 1) {
+      if (!this._powered && val === HIGH) {
         this._powered = true;
         this.emit('power', true);
       }
@@ -400,12 +431,10 @@ class Stepper extends EventEmitter {
     if (invalidStep !== -1) {
       throw new Error(`Mode step at index ${invalidStep} has the wrong number of pins`);
     }
-  }
 
-  _cleanupOnExit() {
-    process.on('SIGINT', () => {
-      this.gpios.forEach((gpio) => gpio.unexport());
-    });
+    if (!Gpio.accessible) {
+      throw new Error('Process does not have permission to access GPIOs');
+    }
   }
 }
 
